@@ -2,7 +2,8 @@
   "name": "miner-stat-view",
   "version": "1.0.0",
   "description": "Просмотр статистики майнера в виде веб странички",
-  "main": "index.js",
+  "main": "index.mjs",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -27,5 +28,10 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "fastify": "^3.27.4",
+    "fastify-socket.io": "^3.0.0",
+    "socket.io-client": "^4.4.1"
   }
 }
