@@ -1,0 +1,31 @@
+{
+  "name": "miner-stat-view",
+  "version": "1.0.0",
+  "description": "Просмотр статистики майнера в виде веб странички",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntLer-24rus/miner-stat-view.git"
+  },
+  "keywords": [
+    "miner",
+    "stat-view"
+  ],
+  "author": "AntLer <antler@inbox.ru>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AntLer-24rus/miner-stat-view/issues"
+  },
+  "homepage": "https://github.com/AntLer-24rus/miner-stat-view#readme",
+  "devDependencies": {
+    "cz-conventional-changelog": "^3.3.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}
