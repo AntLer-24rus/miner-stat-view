@@ -1,39 +1,37 @@
-import { Watcher } from "./stdinWatcher.mjs";
 import io from "socket.io-client";
 
-const HOST = "localhost";
-const PORT = 3000;
+import config from "./config.mjs";
+import { logger } from "./logger.mjs";
+import { Watcher } from "./stdinWatcher.mjs";
+import { getInfo, getMinerId } from "./info.mjs";
 
 const watcher = new Watcher();
 
-const ioClient = io(`ws://${HOST}:${PORT}`, {
+const ioClient = io(`ws://${config.get("host")}:${config.get("port")}`, {
   path: "/ws",
   transports: ["websocket", "polling"],
   extraHeaders: {
-    "x-client-id": "FAKE_MINER_ID",
+    "x-client-id": getMinerId(),
     "x-client-type": "miner",
   },
 });
 
-setInterval(() => {
-  ioClient.emit("stat", Date.now());
-}, 3000);
-
 watcher.on("data", (data) => {
+  logger.debug("Send to server stats");
   ioClient.emit("stat", data);
 });
 
 ioClient.on("connect", () => {
-  ioClient.emit("info", { ip: "0.0.0.0", mac: "00:00:00:00:00:00" });
-  // watcher.watch();
-  console.log("connected to server");
+  ioClient.emit("info", getInfo());
+  watcher.watch();
+  logger.info("Connected to server");
 });
 ioClient.on("disconnect", () => {
-  console.log("disconnected from server");
+  logger.info("Disconnected from server");
 });
 ioClient.on("reconnecting", () => {
-  console.log("reconnecting to server...");
+  logger.info("Reconnecting to server...");
 });
 ioClient.on("reconnect", () => {
-  console.log("reconnected to server");
+  logger.info("Reconnected to server");
 });
