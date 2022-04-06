@@ -106,3 +106,6 @@ dist
 # config files
 *.conf
 config.json
+
+#server publick
+**/server/public
