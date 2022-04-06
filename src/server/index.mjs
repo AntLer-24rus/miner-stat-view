@@ -1,16 +1,21 @@
 import fastify from "fastify";
 import fastifyIO from "fastify-socket.io";
 
-const HOST = "localhost";
-const PORT = 3000;
+import config from "./config.mjs";
 
 const WEB_CLIENTS_ROOM = "client_room";
 const MINER_CLIENTS_ROOM = "miner_room";
 
-const knownMiners = new Map();
-
 const server = fastify({
-  logger: true,
+  logger: {
+    level: config.get("dev") ? "debug" : "info",
+    prettyPrint: config.get("dev")
+      ? {
+          translateTime: "SYS:HH:MM:ss",
+          ignore: "pid,hostname",
+        }
+      : false,
+  },
 });
 
 server.register(fastifyIO, {
@@ -18,50 +23,72 @@ server.register(fastifyIO, {
 });
 
 server.ready().then(() => {
+  const knownMiners = new Map();
+
+  const flatMap = (map) => Array.from(map, ([id, value]) => ({ id, ...value }));
+
   server.io.on("connection", (socket) => {
-    const { "x-client-type": clientType, "x-client-id": clientId } =
-      socket.handshake.headers;
+    const client = {
+      id: socket.handshake.headers["x-client-id"],
+      type: socket.handshake.headers["x-client-type"],
+    };
+
+    if (!client.id || !client.type) {
+      socket.disconnect();
+      server.log.debug(
+        `Disconnected client ${JSON.stringify(client)} with unknown type or id`
+      );
+      return;
+    }
+
+    const joinMiner = (data) => {
+      knownMiners.set(client.id, {
+        ...knownMiners.get(client.id),
+        online: true,
+        ...data,
+      });
+      socket.join(MINER_CLIENTS_ROOM);
+      server.io.in(WEB_CLIENTS_ROOM).emit("miner-list", flatMap(knownMiners));
+    };
+    const leaveMiner = () => {
+      knownMiners.set(client.id, {
+        ...knownMiners.get(client.id),
+        online: false,
+      });
+      server.io.in(WEB_CLIENTS_ROOM).emit("miner-list", flatMap(knownMiners));
+    };
+
+    const updateMinerData = (data) => {
+      knownMiners.set(client.id, {
+        ...knownMiners.get(client.id),
+        ...data,
+      });
+      server.io.in(WEB_CLIENTS_ROOM).emit("miner-list", flatMap(knownMiners));
+    };
+
+    if (client.type === "miner") {
+      socket.on("info", (data) => joinMiner({ info: data }));
+      socket.on("stat", (data) => updateMinerData({ stat: data }));
+      socket.on("disconnect", () => leaveMiner());
+    } else if (client.type === "web") {
+      socket.join(WEB_CLIENTS_ROOM);
+      socket.emit("miner-list", flatMap(knownMiners));
+    }
 
     server.log.debug(
-      `Connecting new client "${clientType}" with id: ${clientId} - ${socket.id}`
+      `Connecting new client "${client.type}" with id: ${client.id} - ${socket.id}`
     );
-
-    if (clientType === "miner") {
-      socket.join(MINER_CLIENTS_ROOM);
-
-      socket.on("info", (data) => {
-        knownMiners.set(clientId, { online: true, info: data });
-
-        server.io.in(WEB_CLIENTS_ROOM).emit("info", data);
-        server.log.debug(
-          `Client info: ${clientId}  - ${socket.id} ${JSON.stringify(data)}`
-        );
-      });
-      socket.on("stat", (data) => {
-        knownMiners.set(clientId, {
-          ...knownMiners.get(clientId),
-          online: true,
-        });
-
-        server.io.in(WEB_CLIENTS_ROOM).emit("stat", data);
-        server.log.debug(`Client stat: ${clientId} ${JSON.stringify(data)}`);
-      });
-      socket.on("disconnect", () => {
-        knownMiners.set(clientId, {
-          ...knownMiners.get(clientId),
-          online: false,
-        });
-
-        server.log.debug(`Client disconnection: ${clientId}`);
-      });
-    } else if (clientType === "web") {
-    } else {
-      socket.disconnect(true);
-    }
+    socket.onAny((eventName, ...args) => {
+      server.log.debug(
+        `Client ${client.type}/${
+          client.id
+        } emit event ${eventName} with data: ${JSON.stringify(args)}`
+      );
+    });
   });
 });
 
-server.listen(PORT, (err) => {
+server.listen(config.get("port"), config.get("host"), (err) => {
   if (err) {
     server.log.error(err);
     process.exit(1);
