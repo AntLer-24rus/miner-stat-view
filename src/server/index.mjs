@@ -1,5 +1,7 @@
 import fastify from "fastify";
 import fastifyIO from "fastify-socket.io";
+import fastifyStatic from "fastify-static";
+import { fileURLToPath, URL } from "url";
 
 import config from "./config.mjs";
 
@@ -20,6 +22,9 @@ const server = fastify({
 
 server.register(fastifyIO, {
   path: "/ws",
+});
+server.register(fastifyStatic, {
+  root: fileURLToPath(new URL("./public", import.meta.url)),
 });
 
 server.ready().then(() => {
