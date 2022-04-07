@@ -7,9 +7,10 @@
   "scripts": {
     "start:server": "cd ./src/server && node index.mjs",
     "start:agent": "cd ./src/agent && node index.mjs",
-    "dev:server": "cd ./src/server && nodemon index.mjs",
+    "dev:server": "cd ./src/server && nodemon index.mjs -- -d",
     "dev:client": "cd ./src/client && npm run dev",
-    "build:client": "cd ./src/client && npm run build"
+    "build:client": "cd ./src/client && npm run build -- --emptyOutDir",
+    "postinstall": "cd ./src/client && npm install"
   },
   "repository": {
     "type": "git",
