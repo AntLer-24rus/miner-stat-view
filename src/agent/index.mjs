@@ -35,3 +35,5 @@ ioClient.on("reconnecting", () => {
 ioClient.on("reconnect", () => {
   logger.info("Reconnected to server");
 });
+
+logger.info("Agent started");
